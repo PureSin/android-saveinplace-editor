@@ -105,14 +105,21 @@ Tapping a cell copies the ID to clipboard for convenient use with ADB.
 
 ---
 
+## Implementation Notes
+
+- UI is Jetpack Compose (not ViewBinding as originally planned)
+- Package: `com.purecomet.saveinplaceeditor` (not `com.kelvinma.saveinplace`)
+- No separate layout XML files or RecyclerView adapter — all UI in Compose
+
+---
+
 ## Task Breakdown
 
-### T1 — Project Scaffolding
-- [ ] Create `settings.gradle.kts`
-- [ ] Create root `build.gradle.kts`
-- [ ] Create `app/build.gradle.kts` (Kotlin, ViewBinding, Coil dep, minSdk 30)
-- [ ] Create `app/src/main/AndroidManifest.xml` with all permissions and intent filters
-- [ ] Create `app/src/main/res/values/strings.xml`
+### T1 — Project Scaffolding ✅
+- [x] `settings.gradle.kts`, root and app `build.gradle.kts`
+- [x] `app/build.gradle.kts` (Kotlin + Compose + Coil, minSdk 30)
+- [x] `AndroidManifest.xml` — `READ_MEDIA_IMAGES`, `READ_EXTERNAL_STORAGE`, `MANAGE_MEDIA`, `READ_MEDIA_VISUAL_USER_SELECTED`
+- [x] `res/values/strings.xml`
 
 ### T2 — TestCardGenerator
 - [ ] Implement `TestCardGenerator.kt`
@@ -122,12 +129,10 @@ Tapping a cell copies the ID to clipboard for convenient use with ADB.
   - Centered white bold monospace text with current date + time (two lines)
   - Returns `Bitmap`
 
-### T3 — MediaStoreRepository
-- [ ] Implement `MediaStoreRepository.kt`
-  - Data class `MediaImage(id: Long, uri: Uri, displayName: String, dateTaken: Long)`
-  - `fun queryImages(context: Context): List<MediaImage>` — queries
-    `MediaStore.Images.Media.EXTERNAL_CONTENT_URI`, sorted by `DATE_TAKEN DESC`
-  - Projects: `_ID`, `DISPLAY_NAME`, `DATE_TAKEN`
+### T3 — MediaStoreRepository ✅
+- [x] `MediaStoreRepository.kt`
+  - Data class `MediaImage(id, uri, displayName, dateTaken)`
+  - `suspend fun queryImages(context)` — queries `EXTERNAL_CONTENT_URI`, sorted `DATE_TAKEN DESC`
 
 ### T4 — MediaStoreEditor
 - [ ] Implement `MediaStoreEditor.kt`
@@ -138,47 +143,33 @@ Tapping a cell copies the ID to clipboard for convenient use with ADB.
   - Sets `IS_PENDING = 0`
   - Returns `Result.success` or `Result.failure` with descriptive error
 
-### T5 — ImageGridAdapter
-- [ ] Implement `ImageGridAdapter.kt`
-  - `RecyclerView.Adapter` with `ListAdapter<MediaImage, ...>` + `DiffUtil`
-  - Loads thumbnail via Coil into `ImageView`
-  - Overlays MediaStore ID as small text in bottom-left corner of each cell
-  - `onItemClick: (MediaImage) -> Unit` callback
+### T5 — Image Grid UI ✅
+- [x] `LazyVerticalGrid` (3 columns) in `MainScreen` composable
+- [x] `ImageGridCell` composable: Coil `AsyncImage` (centerCrop) + ID overlay (bottom-left, semi-transparent)
+- [x] Tap copies MediaStore ID to clipboard + shows toast
 
-### T6 — Grid Item Layout
-- [ ] Create `app/src/main/res/layout/item_image_grid.xml`
-  - `FrameLayout` root (square, match parent width)
-  - `ImageView` filling the frame (scaleType: centerCrop)
-  - `TextView` for ID overlay (bottom-left, semi-transparent dark background, white text, small font)
+### T6 — Permission Handling ✅
+- [x] Requests `READ_MEDIA_IMAGES` (API 33+) or `READ_EXTERNAL_STORAGE` (API 30–32) on launch
+- [x] "Grant Permission" button shown when permission denied
 
-### T7 — Main Activity Layout
-- [ ] Create `app/src/main/res/layout/activity_main.xml`
-  - `LinearLayout` (vertical)
-  - `MaterialToolbar` at top: title "Save-In-Place Editor"
-  - `Button` for "Grant MANAGE_MEDIA" (visibility toggled at runtime)
-  - `RecyclerView` (weight=1, fills remaining space)
-  - `TextView` status bar at bottom (single line, monospace)
+### T7 — Main Activity Layout ✅
+- [x] `TopAppBar` with title "Save-In-Place Editor"
+- [x] Grid fills remaining space
+- [ ] MANAGE_MEDIA banner (shown when `canManageMedia` is false)
+- [ ] Status bar `TextView` at bottom for write results
 
-### T8 — MainActivity
-- [ ] Implement `MainActivity.kt`
-  - On `onCreate`/`onNewIntent`: extract `media_store_id` from intent if present
-  - Permission check on resume:
-    - Android 13+: request `READ_MEDIA_IMAGES` if not granted
-    - Android 11–12: request `READ_EXTERNAL_STORAGE` if not granted
-    - Show/hide MANAGE_MEDIA banner based on `MediaStore.canManageMedia(context)`
-  - Load image grid via `MediaStoreRepository` on a coroutine (IO dispatcher)
-  - Submit list to `ImageGridAdapter`
-  - Grid item click: copy ID to clipboard + show toast `"ID 42 copied"`
-  - If `media_store_id` intent extra present:
-    - Call `MediaStoreEditor.overwrite` with `TestCardGenerator.generate()` result
-    - Update status bar with result message
-    - Reload grid
+### T8 — ADB Intent Handling
+- [ ] Handle `media_store_id` Long extra in `onCreate`/`onNewIntent`
+- [ ] Call `MediaStoreEditor.overwrite` + `TestCardGenerator.generate()`
+- [ ] Show result in status bar: `"Written: ID=42 at 2026-03-08 14:22:01"` or error
+- [ ] Reload grid after overwrite
 
 ### T9 — Manual Testing Checklist
 - [ ] Build and install: `./gradlew installDebug`
-- [ ] Grant MANAGE_MEDIA via in-app button
+- [ ] Grant storage permission via in-app button
 - [ ] Verify image grid loads and IDs are visible
 - [ ] Tap a grid cell → confirm ID is copied to clipboard
+- [ ] Grant MANAGE_MEDIA via in-app banner
 - [ ] Run ADB command with a valid ID → confirm image is overwritten with test card
 - [ ] Verify grid refreshes after overwrite
 - [ ] Run ADB command with an invalid ID → confirm error shown in status bar
