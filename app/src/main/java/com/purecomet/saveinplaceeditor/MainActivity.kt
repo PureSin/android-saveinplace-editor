@@ -40,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -107,6 +108,7 @@ fun MainScreen(pendingMediaId: Long?, onIdHandled: () -> Unit) {
     val scope = rememberCoroutineScope()
 
     var images by remember { mutableStateOf<List<MediaImage>>(emptyList()) }
+    var isRefreshing by remember { mutableStateOf(false) }
     var permissionGranted by remember { mutableStateOf(false) }
     var canManageMedia by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("") }
@@ -284,19 +286,34 @@ fun MainScreen(pendingMediaId: Long?, onIdHandled: () -> Unit) {
                     }
                 }
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        scope.launch {
+                            isRefreshing = true
+                            try {
+                                images = withContext(Dispatchers.IO) { MediaStoreRepository.queryImages(context) }
+                            } finally {
+                                isRefreshing = false
+                            }
+                        }
+                    },
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(images, key = { it.id }) { image ->
-                        ImageGridCell(image) {
-                            val clipboard =
-                                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(
-                                ClipData.newPlainText("media_id", image.id.toString())
-                            )
-                            Toast.makeText(context, "ID ${image.id} copied", Toast.LENGTH_SHORT)
-                                .show()
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(images, key = { it.id }) { image ->
+                            ImageGridCell(image) {
+                                val clipboard =
+                                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(
+                                    ClipData.newPlainText("media_id", image.id.toString())
+                                )
+                                Toast.makeText(context, "ID ${image.id} copied", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
                         }
                     }
                 }

@@ -18,7 +18,7 @@ The `local.properties` file already points the SDK to `/Volumes/HubSSD/Library/A
 
 ```bash
 # Build debug APK
-JAVA_HOME=/opt/homebrew/opt/openjdk@17 ANDROID_HOME=/Volumes/HubSSD/Library/Android/sdk ./gradlew assembleDebug
+JAVA_HOME=/opt/homebrew/opt/openjdk@17 ANDROID_HOME=/Volumes/HubSSD/Library/Android/sdk ./gradlew assembleDebugR
 
 # Install to connected device
 JAVA_HOME=/opt/homebrew/opt/openjdk@17 ANDROID_HOME=/Volumes/HubSSD/Library/Android/sdk ./gradlew installDebug
@@ -50,6 +50,14 @@ app/src/main/res/
   values/strings.xml     # App name: "SaveInPlace Editor"
   values/themes.xml
   values/colors.xml
+```
+
+## Workflow
+
+After making any code changes, always deploy and launch the app on the connected device:
+
+```bash
+JAVA_HOME=/opt/homebrew/opt/openjdk@17 ANDROID_HOME=/Volumes/HubSSD/Library/Android/sdk ./gradlew installDebug && /Volumes/HubSSD/Library/Android/sdk/platform-tools/adb shell am start -n com.purecomet.saveinplaceeditor/.MainActivity
 ```
 
 ## Key Config
