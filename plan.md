@@ -121,8 +121,8 @@ Tapping a cell copies the ID to clipboard for convenient use with ADB.
 - [x] `AndroidManifest.xml` — `READ_MEDIA_IMAGES`, `READ_EXTERNAL_STORAGE`, `MANAGE_MEDIA`, `READ_MEDIA_VISUAL_USER_SELECTED`
 - [x] `res/values/strings.xml`
 
-### T2 — TestCardGenerator
-- [ ] Implement `TestCardGenerator.kt`
+### T2 — TestCardGenerator ✅
+- [x] Implement `TestCardGenerator.kt`
   - Creates a 512×512 `Bitmap`
   - Black background
   - Color bar strip at top (red/green/blue/yellow, each 1/4 width, ~32px tall)
@@ -134,8 +134,8 @@ Tapping a cell copies the ID to clipboard for convenient use with ADB.
   - Data class `MediaImage(id, uri, displayName, dateTaken)`
   - `suspend fun queryImages(context)` — queries `EXTERNAL_CONTENT_URI`, sorted `DATE_TAKEN DESC`
 
-### T4 — MediaStoreEditor
-- [ ] Implement `MediaStoreEditor.kt`
+### T4 — MediaStoreEditor ✅
+- [x] Implement `MediaStoreEditor.kt`
   - `fun overwrite(context: Context, id: Long, bitmap: Bitmap): Result<Unit>`
   - Builds content URI from ID
   - Sets `IS_PENDING = 1`
@@ -155,21 +155,28 @@ Tapping a cell copies the ID to clipboard for convenient use with ADB.
 ### T7 — Main Activity Layout ✅
 - [x] `TopAppBar` with title "Save-In-Place Editor"
 - [x] Grid fills remaining space
-- [ ] MANAGE_MEDIA banner (shown when `canManageMedia` is false)
-- [ ] Status bar `TextView` at bottom for write results
+- [x] MANAGE_MEDIA banner (shown when `canManageMedia` is false)
+- [x] Status bar `TextView` at bottom for write results
 
-### T8 — ADB Intent Handling
-- [ ] Handle `media_store_id` Long extra in `onCreate`/`onNewIntent`
-- [ ] Call `MediaStoreEditor.overwrite` + `TestCardGenerator.generate()`
-- [ ] Show result in status bar: `"Written: ID=42 at 2026-03-08 14:22:01"` or error
-- [ ] Reload grid after overwrite
+### T8 — ADB Intent Handling ✅
+- [x] Handle `media_store_id` Long extra in `onCreate`/`onNewIntent`
+- [x] Call `MediaStoreEditor.overwrite` + `TestCardGenerator.generate()`
+- [x] Show result in status bar: `"Written: ID=42 at 2026-03-08 14:22:01"` or error
+- [x] Reload grid after overwrite
 
 ### T9 — Manual Testing Checklist
-- [ ] Build and install: `./gradlew installDebug`
-- [ ] Grant storage permission via in-app button
-- [ ] Verify image grid loads and IDs are visible
-- [ ] Tap a grid cell → confirm ID is copied to clipboard
-- [ ] Grant MANAGE_MEDIA via in-app banner
-- [ ] Run ADB command with a valid ID → confirm image is overwritten with test card
-- [ ] Verify grid refreshes after overwrite
+- [x] Build and install: `./gradlew installDebug`
+- [x] Grant storage permission via in-app button
+- [x] Verify image grid loads and IDs are visible
+- [x] Tap a grid cell → confirm ID is copied to clipboard
+- [x] Grant MANAGE_MEDIA via in-app banner
+- [x] Run ADB command with a valid ID → confirm image is overwritten with test card
+- [x] Verify grid refreshes after overwrite
 - [ ] Run ADB command with an invalid ID → confirm error shown in status bar
+
+### T10 — Coil Cache Invalidation Fix ✅
+- [x] After a successful overwrite, invalidate Coil memory and disk cache for the written URI
+  before re-querying MediaStore — prevents stale thumbnails since the URI is unchanged
+- [x] Added `invalidateCoilCache(context, id)` helper using `context.imageLoader.memoryCache`
+  and `context.imageLoader.diskCache`
+- [x] Called in both write paths: ADB-triggered and post-permission-dialog retry
