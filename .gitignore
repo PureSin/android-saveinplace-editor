@@ -11,12 +11,7 @@
 *.jks
 
 # Android Studio / IntelliJ IDEA
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+.idea/
 
 # Native build
 .externalNativeBuild
