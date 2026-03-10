@@ -35,8 +35,11 @@ Output APK: `app/build/outputs/apk/debug/app-debug.apk`
 ### ADB Usage
 
 ```bash
-# Overwrite image ID 42 with a 512x512 test card
-adb shell am start -n com.kelvinma.saveinplace/.MainActivity --el media_store_id 42
+# Overwrite image ID 42 with a 512x512 test card (uses IS_PENDING by default)
+adb shell am start -n com.purecomet.saveinplaceeditor/.MainActivity --el media_store_id 42
+
+# Overwrite without IS_PENDING (legacy behavior)
+adb shell am start -n com.purecomet.saveinplaceeditor/.MainActivity --el media_store_id 42 --ez skip_pending true
 ```
 
 ## Project Structure

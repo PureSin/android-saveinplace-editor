@@ -2,6 +2,10 @@
 
 An Android utility that overwrites images in the device's MediaStore by their database ID without changing their URI or file path. Primarily triggered via ADB, it's useful for testing image processing pipelines and gallery refresh behavior.
 
+## Screenshot
+
+![Save-In-Place Editor](docs/screenshot.png)
+
 ## What It Does
 
 - Displays all device images in a 3-column grid with their MediaStore IDs overlaid
@@ -11,9 +15,14 @@ An Android utility that overwrites images in the device's MediaStore by their da
 ## ADB Usage
 
 ```bash
-# Overwrite image with MediaStore ID 42
+# Overwrite image with MediaStore ID 42 (uses IS_PENDING by default)
 adb shell am start -n com.purecomet.saveinplaceeditor/.MainActivity --el media_store_id 42
+
+# Overwrite without marking IS_PENDING (legacy behavior)
+adb shell am start -n com.purecomet.saveinplaceeditor/.MainActivity --el media_store_id 42 --ez skip_pending true
 ```
+
+By default the app sets `IS_PENDING=1` before writing and `IS_PENDING=0` after, giving exclusive access during the write. Pass `--ez skip_pending true` to skip this and write directly.
 
 Tap any image in the grid to copy its ID to the clipboard.
 

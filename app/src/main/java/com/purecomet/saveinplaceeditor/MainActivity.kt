@@ -75,6 +75,7 @@ private fun invalidateCoilCache(context: Context, id: Long) {
 class MainActivity : ComponentActivity() {
 
     private val pendingMediaId = mutableStateOf<Long?>(null)
+    private val pendingUsePending = mutableStateOf(true)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,6 +85,7 @@ class MainActivity : ComponentActivity() {
             SaveInPlaceEditorTheme {
                 MainScreen(
                     pendingMediaId = pendingMediaId.value,
+                    usePending = pendingUsePending.value,
                     onIdHandled = { pendingMediaId.value = null }
                 )
             }
@@ -97,13 +99,15 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent?) {
         val id = intent?.getLongExtra("media_store_id", -1L)?.takeIf { it >= 0 } ?: return
+        val skipPending = intent.getBooleanExtra("skip_pending", false)
+        pendingUsePending.value = !skipPending
         pendingMediaId.value = id
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(pendingMediaId: Long?, onIdHandled: () -> Unit) {
+fun MainScreen(pendingMediaId: Long?, usePending: Boolean = true, onIdHandled: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -136,7 +140,7 @@ fun MainScreen(pendingMediaId: Long?, onIdHandled: () -> Unit) {
             scope.launch {
                 statusMessage = "Writing ID=$id…"
                 val writeResult = withContext(Dispatchers.IO) {
-                    MediaStoreEditor.overwrite(context, id, TestCardGenerator.generate())
+                    MediaStoreEditor.overwrite(context, id, TestCardGenerator.generate(), usePending)
                 }
                 writeResult.fold(
                     onSuccess = {
@@ -181,7 +185,7 @@ fun MainScreen(pendingMediaId: Long?, onIdHandled: () -> Unit) {
         Log.d("MainActivity", "pendingMediaId=$id, canManageMedia=$canManageMedia")
         statusMessage = "Writing ID=$id…"
         val result = withContext(Dispatchers.IO) {
-            MediaStoreEditor.overwrite(context, id, TestCardGenerator.generate())
+            MediaStoreEditor.overwrite(context, id, TestCardGenerator.generate(), usePending)
         }
         onIdHandled()
         Log.d("MainActivity", "overwrite result: $result")
