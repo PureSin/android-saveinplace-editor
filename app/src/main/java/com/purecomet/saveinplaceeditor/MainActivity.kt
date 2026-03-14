@@ -31,6 +31,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -122,7 +126,7 @@ fun MainScreen(pendingMediaId: Long?, usePending: Boolean = true, onIdHandled: (
     var canManageMedia by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("") }
     var pendingWriteId by remember { mutableStateOf<Long?>(null) }
-    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedImageId by remember { mutableStateOf<Long?>(null) }
 
     val readPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_IMAGES
@@ -223,11 +227,12 @@ fun MainScreen(pendingMediaId: Long?, usePending: Boolean = true, onIdHandled: (
         )
     }
 
-    selectedIndex?.let { index ->
-        BackHandler { selectedIndex = null }
-        ImageDetailScreen(images = images, initialIndex = index, onBack = { selectedIndex = null })
-        return
-    }
+    val detailIndex = selectedImageId?.let { id -> images.indexOfFirst { it.id == id }.takeIf { it >= 0 } }
+
+    if (detailIndex != null) {
+        BackHandler { selectedImageId = null }
+        ImageDetailScreen(images = images, initialIndex = detailIndex, onBack = { selectedImageId = null })
+    } else {
 
     Scaffold(
         topBar = {
@@ -320,20 +325,28 @@ fun MainScreen(pendingMediaId: Long?, usePending: Boolean = true, onIdHandled: (
                         columns = GridCells.Fixed(3),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        itemsIndexed(images, key = { _, image -> image.id }) { index, image ->
-                            ImageGridCell(image) { selectedIndex = index }
+                        itemsIndexed(images, key = { _, image -> image.id }) { _, image ->
+                            ImageGridCell(image) { selectedImageId = image.id }
                         }
                     }
                 }
             }
         }
     }
+    } // end else (detail not shown)
 }
 
 @Composable
 fun ImageDetailScreen(images: List<MediaImage>, initialIndex: Int, onBack: () -> Unit) {
+    val context = LocalContext.current
     val pagerState = rememberPagerState(initialPage = initialIndex) { images.size }
     val currentImage = images[pagerState.currentPage]
+
+    // Live generation value — starts from cached, re-queries fresh on each page change
+    var liveGeneration by remember(currentImage.id) { mutableStateOf(currentImage.generationModified) }
+    LaunchedEffect(currentImage.id) {
+        liveGeneration = MediaStoreRepository.queryGenerationModified(context, currentImage.id)
+    }
 
     Box(
         modifier = Modifier
@@ -356,6 +369,7 @@ fun ImageDetailScreen(images: List<MediaImage>, initialIndex: Int, onBack: () ->
             onClick = onBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
+                .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(8.dp)
                 .background(Color(0xAA000000), shape = CircleShape)
         ) {
@@ -367,10 +381,11 @@ fun ImageDetailScreen(images: List<MediaImage>, initialIndex: Int, onBack: () ->
         }
 
         Text(
-            text = "generation_modified: ${currentImage.generationModified}",
+            text = "generation_modified: $liveGeneration",
             color = Color.White,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(16.dp)
                 .background(Color(0xAA000000))
                 .padding(horizontal = 12.dp, vertical = 6.dp),

@@ -1,5 +1,6 @@
 package com.purecomet.saveinplaceeditor
 
+import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
@@ -40,5 +41,13 @@ object MediaStoreRepository {
             }
         }
         images
+    }
+
+    suspend fun queryGenerationModified(context: Context, id: Long): Long = withContext(Dispatchers.IO) {
+        val uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+        val projection = arrayOf(MediaStore.Images.Media.GENERATION_MODIFIED)
+        context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) cursor.getLong(0) else null
+        } ?: 0L
     }
 }
