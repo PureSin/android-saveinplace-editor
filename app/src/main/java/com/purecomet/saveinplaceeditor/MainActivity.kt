@@ -3,8 +3,6 @@ package com.purecomet.saveinplaceeditor
 import android.Manifest
 import android.app.Activity
 import android.app.RecoverableSecurityException
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -12,13 +10,13 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -33,9 +31,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -117,6 +122,7 @@ fun MainScreen(pendingMediaId: Long?, usePending: Boolean = true, onIdHandled: (
     var canManageMedia by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("") }
     var pendingWriteId by remember { mutableStateOf<Long?>(null) }
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
     val readPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_IMAGES
@@ -217,6 +223,12 @@ fun MainScreen(pendingMediaId: Long?, usePending: Boolean = true, onIdHandled: (
         )
     }
 
+    selectedIndex?.let { index ->
+        BackHandler { selectedIndex = null }
+        ImageDetailScreen(images = images, initialIndex = index, onBack = { selectedIndex = null })
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Save-In-Place Editor") })
@@ -308,21 +320,62 @@ fun MainScreen(pendingMediaId: Long?, usePending: Boolean = true, onIdHandled: (
                         columns = GridCells.Fixed(3),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(images, key = { it.id }) { image ->
-                            ImageGridCell(image) {
-                                val clipboard =
-                                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(
-                                    ClipData.newPlainText("media_id", image.id.toString())
-                                )
-                                Toast.makeText(context, "ID ${image.id} copied", Toast.LENGTH_SHORT)
-                                    .show()
-                            }
+                        itemsIndexed(images, key = { _, image -> image.id }) { index, image ->
+                            ImageGridCell(image) { selectedIndex = index }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ImageDetailScreen(images: List<MediaImage>, initialIndex: Int, onBack: () -> Unit) {
+    val pagerState = rememberPagerState(initialPage = initialIndex) { images.size }
+    val currentImage = images[pagerState.currentPage]
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            AsyncImage(
+                model = images[page].uri,
+                contentDescription = images[page].displayName,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(8.dp)
+                .background(Color(0xAA000000), shape = CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = Color.White
+            )
+        }
+
+        Text(
+            text = "generation_modified: ${currentImage.generationModified}",
+            color = Color.White,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+                .background(Color(0xAA000000))
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

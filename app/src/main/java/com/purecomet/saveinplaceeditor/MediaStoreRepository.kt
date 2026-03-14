@@ -11,6 +11,7 @@ data class MediaImage(
     val uri: Uri,
     val displayName: String,
     val dateTaken: Long,
+    val generationModified: Long,
 )
 
 object MediaStoreRepository {
@@ -21,18 +22,21 @@ object MediaStoreRepository {
             MediaStore.Images.Media._ID,
             MediaStore.Images.Media.DISPLAY_NAME,
             MediaStore.Images.Media.DATE_TAKEN,
+            MediaStore.Images.Media.GENERATION_MODIFIED,
         )
         val sortOrder = "${MediaStore.Images.Media.DATE_TAKEN} DESC"
         context.contentResolver.query(collection, projection, null, null, sortOrder)?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
             val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
             val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_TAKEN)
+            val genCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.GENERATION_MODIFIED)
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
                 val uri = android.content.ContentUris.withAppendedId(collection, id)
                 val name = cursor.getString(nameCol) ?: ""
                 val date = cursor.getLong(dateCol)
-                images += MediaImage(id, uri, name, date)
+                val gen = cursor.getLong(genCol)
+                images += MediaImage(id, uri, name, date, gen)
             }
         }
         images
